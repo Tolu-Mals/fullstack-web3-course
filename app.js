@@ -1,12 +1,12 @@
 import { createWalletClient, custom, createPublicClient, defineChain, parseEther } from 'https://esm.sh/viem';
-import { contractAddress, abi } from './constants-js';
+import { contractAddress, abi } from './constants-js.js';
 
 const connectBtn = document.getElementById("connectButton");
 const fundBtn = document.getElementById("fundButton");
 const ethAmounInput = document.getElementById("ethAmount")
 
-connectBtn.onclick = connect
-fundBtn.onclick = fund
+connectBtn.onclick = connect;
+fundBtn.onclick = fund;
 
 let walletClient
 let publicClient //To simulate a transaction before sending, so we're sure it won't fail
@@ -29,7 +29,7 @@ async function fund(){
 
         const currentChain = await getCurrentChain(walletClient);
 
-        await publicClient.simulateContract({
+        const { request } = await publicClient.simulateContract({
             address: contractAddress,
             abi,
             functionName: "fund",
@@ -37,6 +37,9 @@ async function fund(){
             chain: currentChain,
             value: parseEther(ethAmount),
         });
+
+        const tx_hash = await walletClient.writeContract(request);
+        console.log(tx_hash)
     } else {
         connectBtn.innerText = 'Please Install MetaMask';
     }
