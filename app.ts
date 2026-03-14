@@ -7,6 +7,8 @@ import {
     parseEther, 
     formatEther, 
     type Chain,
+    type WalletClient,
+    type PublicClient,
 } from 'viem';
 import { contractAddress, abi } from './constants';
 
@@ -15,17 +17,20 @@ const fundBtn = document.getElementById("fundButton") as HTMLButtonElement;
 const balanceBtn = document.getElementById("balanceButton") as HTMLButtonElement;
 const ethAmountInput = document.getElementById("ethAmount") as HTMLInputElement;
 const withdrawButton = document.getElementById("withdrawButton") as HTMLButtonElement;
+const amountFundedBtn = document.getElementById("getAmountFunded") as HTMLButtonElement;
+const funderAddressInput = document.getElementById("funderAddress") as HTMLInputElement;
 const statusText = document.getElementById("statusText") as HTMLDivElement;
 
 if (connectBtn) connectBtn.onclick = connect;
 if (fundBtn) fundBtn.onclick = fund;
 if (balanceBtn) balanceBtn.onclick = getBalance;
 if (withdrawButton) withdrawButton.onclick = withdraw;
+if (amountFundedBtn) amountFundedBtn.onclick = getAmountFunded;
 
 // Using 'any' here to bypass some of the strict type checking issues with Viem's inferred clients 
 // that were causing the ES5/Account errors in some environments.
-let walletClient: any;
-let publicClient: any;
+let walletClient: WalletClient;
+let publicClient: PublicClient;
 
 function updateStatus(msg: string) {
     if (statusText) statusText.innerText = msg;
@@ -168,6 +173,28 @@ async function getBalance() {
             console.log("Balance: ", formatEther(balance));
         } catch (error: any) {
             updateStatus("Failed to get balance");
+        }
+    }
+}
+
+async function getAmountFunded() {
+    if (typeof window.ethereum !== 'undefined') {
+        publicClient = createPublicClient({
+            transport: custom(window.ethereum!),
+        });
+
+        try {
+            const amountFunded = await publicClient.readContract({
+                address: contractAddress,
+                abi,
+                functionName: "getAddressToAmountFunded",
+                args: [funderAddressInput.value as `0x${string}`],
+            });
+
+            updateStatus(`Amount Funded: ${formatEther(amountFunded)} ETH`);
+            console.log("Amount Funded: ", formatEther(amountFunded));
+        } catch (error: any) {
+            updateStatus("Failed to get amount funded");
         }
     }
 }
