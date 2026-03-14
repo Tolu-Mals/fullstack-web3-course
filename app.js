@@ -1,12 +1,14 @@
-import { createWalletClient, custom, createPublicClient, defineChain, parseEther } from 'https://esm.sh/viem';
+import { createWalletClient, custom, createPublicClient, defineChain, parseEther, formatEther } from 'https://esm.sh/viem';
 import { contractAddress, abi } from './constants-js.js';
 
 const connectBtn = document.getElementById("connectButton");
 const fundBtn = document.getElementById("fundButton");
+const balanceBtn = document.getElementById("balanceButton");
 const ethAmounInput = document.getElementById("ethAmount")
 
 connectBtn.onclick = connect;
 fundBtn.onclick = fund;
+balanceBtn.onclick = getBalance;
 
 let walletClient
 let publicClient //To simulate a transaction before sending, so we're sure it won't fail
@@ -74,4 +76,18 @@ async function getCurrentChain(client){
         rpcUrls: ["http://localhost:8545"],
     });
     return currentChain;
+}
+
+async function getBalance(){
+    if(typeof window.ethereum !== 'undefined'){
+        publicClient = createPublicClient({
+            transport: custom(window.ethereum),
+        });
+
+        const balance = await publicClient.getBalance({
+            address: contractAddress,
+        });
+
+        console.log("Balance: ", formatEther(balance));
+    }
 }
