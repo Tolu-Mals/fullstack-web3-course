@@ -1,10 +1,11 @@
-import { createWalletClient, custom, createPublicClient } from 'https://esm.sh/viem';
+import { createWalletClient, custom, createPublicClient, defineChain, parseEther } from 'https://esm.sh/viem';
+import { contractAddress, abi } from './constants-js';
 
 const connectBtn = document.getElementById("connectButton");
 const fundBtn = document.getElementById("fundButton");
 const ethAmounInput = document.getElementById("ethAmount")
 
-connectBtn.onclick = onClick
+connectBtn.onclick = connect
 fundBtn.onclick = fund
 
 let walletClient
@@ -12,30 +13,39 @@ let publicClient //To simulate a transaction before sending, so we're sure it wo
 
 async function fund(){
     const ethAmount = ethAmounInput.value;
-    console.log(`Funding with ${ethAmount}`)
-
 
     //Reconnect if they're not connected
     if(typeof window.ethereum !== 'undefined'){ // Using viem allows us to support other types of wallets asides metmask
-    // window.ethereum.request({method: "eth_requestAccounts"})
         walletClient = createWalletClient({
             transport: custom(window.ethereum), //How do we communicate with the blockchain network?, custom is mostly used for browser wallets
         });
 
-        await walletClient.requestAddresses(); //Sends a request to the wallet asking for permission to access the user's accounts
+        const [connectedAccount] = await walletClient.requestAddresses(); //Sends a request to the wallet asking for permission to access the user's accounts
 
+        // we want to simulate the transaction before sending it to the blockchain
         publicClient = createPublicClient({
             transport: custom(window.ethereum),
         });
 
+        const currentChain = await getCurrentChain(walletClient);
+
+        await publicClient.simulateContract({
+            address: contractAddress,
+            abi,
+            functionName: "fund",
+            account: connectedAccount,
+            chain: currentChain,
+            value: parseEther(ethAmount),
+        });
     } else {
         connectBtn.innerText = 'Please Install MetaMask';
     }
 
 }
 
-async function onClick(){
+async function connect(){
     if(typeof window.ethereum !== 'undefined'){
+    // window.ethereum.request({method: "eth_requestAccounts"})
         // Connnect
         walletClient = createWalletClient({
             transport: custom(window.ethereum), //What type of blockchain are we connecting to?
@@ -46,4 +56,19 @@ async function onClick(){
     } else {
         connectBtn.innerText = 'Please Install MetaMask';
     }
+}
+
+async function getCurrentChain(client){
+    const chainId = await client.getChainId();
+    const currentChain = defineChain({
+        id: chainId,
+        name: "Ethereum",
+        nativeCurrency: {
+            name: "Ether",
+            symbol: "ETH",
+            decimals: 18,
+        },
+        rpcUrls: ["http://localhost:8545"],
+    });
+    return currentChain;
 }
